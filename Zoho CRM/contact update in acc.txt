@@ -1,0 +1,11 @@
+void automation.contact_update_in_acc()
+{
+acc_id = zoho.crm.getRecordById("Contacts",850357000000463116);
+// 	info acc_id;
+phone_no = acc_id.get("Phone");
+mp = Map();
+mp.put("Phone","+91" + phone_no);
+update = zoho.crm.updateRecord("Contacts",850357000000463116,mp);
+info mp;
+info update;
+}

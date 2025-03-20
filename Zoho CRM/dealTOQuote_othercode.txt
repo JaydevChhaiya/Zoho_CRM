@@ -1,0 +1,45 @@
+string button.quote_to_deal(String deal_id)
+{
+potDetails = zoho.crm.getRecordById("Deals",deal_id);
+// info potDetails;
+quotesubject = ifnull(potDetails.get("Deal_Name"),"");
+contact = ifnull(potDetails.get("Contact_Name").get("id"),"");
+account = ifnull(potDetails.get("Account_Name").get("id"),"");
+description = ifnull(potDetails.get("Description"),"");
+RelatedProducts = zoho.crm.getRelatedRecords("Products","Deals",deal_id);
+product_items = List();
+sub = 0.0;
+for each  product in RelatedProducts
+{
+	proid = product.get("id");
+	info proid;
+	proname = product.get("Product_Name");
+	productDesc = ifnull(product.get("Description"),"");
+	quantity = 1;
+	price = ifnull(product.get("Unit_Price"),"0.0").toDecimal();
+	listprice = price * quantity;
+	lineitem = Map();
+	lineitem.put("product",{"name":proname,"id":proid});
+	lineitem.put("product_description",productDesc);
+	lineitem.put("quantity",quantity);
+	lineitem.put("net_total",listprice);
+	lineitem.put("total",listprice);
+	lineitem.put("list_price",listprice);
+	info lineitem;
+	sub = sub + listprice;
+	product_items.add(lineitem);
+}
+paramap = Map();
+paramap.put("Product_Details",product_items);
+paramap.put("Subject",quotesubject);
+paramap.put("Contact_Name",contact);
+paramap.put("Account_Name",account);
+paramap.put("Deal_Name",deal_id);
+paramap.put("Description",description);
+createResp = zoho.crm.createRecord("Quotes",paramap);
+info paramap;
+info createResp;
+newid = createResp.get("id");
+openUrl("https://crm.zoho.com/crm/org60036339856/tab/Quotes/" + newid,"same window");
+return "Success";
+}

@@ -1,0 +1,27 @@
+void automation.sales_commission_in_quotes(String quoteID)
+{
+quote_map = zoho.crm.getRecordById("Quotes",quoteID);
+info quote_map;
+product_details = ifNull(quote_map.get("Product_Details"),"");
+// 	info product_details;
+value = 0.0;
+for each  get_each_product in product_details
+{
+	quantity = ifNull(get_each_product.get("quantity"),"0").toLong();
+	// 		info quality ;
+	product_id = ifNull(get_each_product.get("product"),"").get("id");
+	// 		product_id = get_each_product.get("product");
+	// 		info product_id ;
+	product_details = zoho.crm.getRecordById("Products",product_id.toLong());
+	commission = ifNull(product_details.get("Commission_Rate"),"0.0").toDecimal();
+	info commission;
+	value = value + commission * quantity;
+	// 		info value ;
+	// 		info product_details;
+}
+mp = Map();
+mp.put("Total_Commission",value);
+update_record = zoho.crm.updateRecord("Quotes",quoteID,mp);
+// 	info mp;
+// 	info update_record ;
+}

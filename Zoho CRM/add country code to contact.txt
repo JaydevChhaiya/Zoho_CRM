@@ -1,0 +1,15 @@
+void automation.country_code_to_contact()
+{
+lead_id = zoho.crm.getRecordById("Leads",850357000000405926);
+// 	info lead_id;
+mobile_no = lead_id.get("Mobile");
+// 	info mobile_no;	
+phone_no = lead_id.get("Phone");
+// 	info phone_no;
+mp = Map();
+mp.put("Mobile","+91" + mobile_no);
+mp.put("Phone","+91" + phone_no);
+update_record = zoho.crm.updateRecord("Leads",850357000000405926,mp);
+info mp;
+info update_record;
+}

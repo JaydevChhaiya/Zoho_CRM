@@ -1,0 +1,60 @@
+string button.po_to_invoice()
+{
+purchase_order = zoho.crm.getRecordById("Purchase_Orders",850357000000405754);
+// 	info purchase_order;
+subject = purchase_order.get("Subject");
+// info subject ;
+status = purchase_order.get("Status");
+// info status;
+get_date = purchase_order.get("PO_Date");
+// info get_date;
+get_product_detail = purchase_order.get("Product_Details");
+// 	info get_product_detail ;
+get_gt = purchase_order.get("Grand_Total");
+// info get_gt ;
+get_sub_total = purchase_order.get("Sub_Total");
+// info get_sub_total ;
+get_sub_discount = purchase_order.get("Discount");
+// info get_sub_discount;
+list_1 = list();
+for each  product in get_product_detail
+{
+	map2 = Map();
+	get_single_product = product.get("product");
+	get_single_product_id = get_single_product.get("id");
+	get_single_product_name = get_single_product.get("name");
+	get_single_product_quantity = product.get("quantity");
+	get_single_product_list = product.get("list_price");
+	product_tax = product.get("Tax");
+	get_product_total = product.get("total");
+	get_single_product_amt = product.get("net_total");
+	get_single_discount = product.get("Discount");
+	// 	info get_single_discount;
+	map2.put("name",get_single_product_name);
+	map2.put("id",get_single_product_id);
+	map2.put("quantity",get_single_product_quantity);
+	map2.put("List_Price",get_single_product_list);
+	map2.put("Tax",product_tax);
+	map2.put("Net_Total",get_product_total);
+	map2.put("Total",get_single_product_amt);
+	map2.put("Grand_Total",get_single_product_amt);
+	map4 = Map();
+	map4.put("product",map2);
+	map4.put("quantity",get_single_product_quantity);
+	map4.put("Discount",get_single_discount);
+	list_1.add(map4);
+}
+map1 = Map();
+map1.put("Subject",subject);
+map1.put("Status",status);
+map1.put("Invoice_Date",get_date);
+map1.put("Product_Details",list_1);
+map1.put("Grand_Total",get_gt);
+map1.put("Sub_Total",get_sub_total);
+map1.put("Discount",get_sub_discount);
+info map1;
+// info map1;
+info zoho.crm.createRecord("Invoices",map1);
+openUrl("https://crm.zoho.in/crm/org60036339856/tab/Invoices/custom-view/850357000000030578/list","new window");
+return "Invoice Created Successfully";
+}

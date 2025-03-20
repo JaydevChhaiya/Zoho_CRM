@@ -1,0 +1,80 @@
+string button.convert_deal_into_quote(String deal_id)
+{
+// existingQuotes = zoho.crm.searchRecords("Quotes","(Deal_Name:equals:" + deal_id + ")");
+// if(existingQuotes.size() > 0)
+// {
+// 	return "A quote already exists for this deal. No new quote was created.";
+// }
+deal_info = zoho.crm.getRecordById("Deals",deal_id);
+info deal_info;
+sub_form_details = ifnull(deal_info.get("Products_Details"),"");
+quotesubject = ifnull(deal_info.get("Deal_Name"),"");
+contact = ifnull(deal_info.get("Contact_Name").get("id"),"");
+account = ifnull(deal_info.get("Account_Name").get("id"),"");
+description = ifnull(deal_info.get("Description"),"");
+sub_total = ifnull(deal_info.get("Sub_Total_Amount"),0.0);
+discount_subtotal = ifnull(deal_info.get("Discount_on_Subtotal1"),0.0);
+tax_on_total = ifnull(deal_info.get("Tax"),0.0);
+adjustment = ifnull(deal_info.get("Adjustment"),0.0);
+grand_total = ifnull(deal_info.get("Grand_Total_Amount"),0.0);
+// 	RelatedProducts = zoho.crm.getRelatedRecords("Products_Details","Deals",deal_id);
+// 	info RelatedProducts;
+//     sub = 0.0;
+product_items = List();
+for each  product in sub_form_details
+{
+	proid = ifnull(product.get("Product").get("id"),"");
+	proname = ifnull(product.get("Product").get("name"),"");
+	productDesc = ifnull(product.get("Description"),"");
+	list_price = product.get("List_Price");
+	quantity = product.get("Quantity");
+	amount = product.get("Amount");
+	discount = ifnull(product.get("Discount_Rate"),0.0);
+	tax = ifnull(product.get("Tax_Rate"),0.0);
+	total = ifnull(product.get("Total"),0.0);
+	lineitem = Map();
+	lineitem.put("product",{"name":proname,"id":proid});
+	lineitem.put("product_description",productDesc);
+	lineitem.put("quantity",quantity);
+	lineitem.put("list_price",list_price);
+	lineitem.put("amount",amount);
+	lineitem.put("discount",discount);
+	lineitem.put("tax",tax);
+	lineitem.put("total",total);
+	info lineitem;
+	// 	info lineitem;
+	// 	lineitem.put("sub_total",sub_total);
+	// 	lineitem.put("discount_on", <OBJECT>)
+	// 	lineitem.put("grand_total", grand_total);
+	// 			info lineitem;
+	// 	sub = sub + listprice;
+	product_items.add(lineitem);
+}
+info product_items;
+mp = Map();
+mp.put("Product_Details",product_items);
+mp.put("Sub_Total",sub_total);
+mp.put("Discount",discount_subtotal);
+mp.put("Tax",tax_on_total);
+mp.put("Adjustment",adjustment);
+mp.put("Grand_Total",grand_total);
+mp.put("Subject",quotesubject);
+mp.put("Deal_Name",deal_id);
+mp.put("Description",description);
+// info mp;
+// newid = createResp.get("id");
+// 	openUrl("https://crm.zoho.com/crm/org60036339856/tab/Quotes/" + newid,"same window");
+createResp = zoho.crm.createRecord("Quotes",mp);
+// info createResp;
+if(createResp.contains("id"))
+{
+	newid = createResp.get("id");
+	// 	openUrl("https://crm.zoho.com/crm/org60036339856/tab/Quotes/" + newid,"same window");
+	return "Quote Successfully created.";
+}
+else
+{
+	return "Can not Create Quote  " + createResp.toString();
+}
+return "";
+}

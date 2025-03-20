@@ -1,0 +1,14 @@
+void automation.invoice_to_books()
+{
+invoice_detail = zoho.crm.getRecordById("Invoices",850357000000368146);
+info invoice_detail;
+account_id = invoice_detail.get("Account_Name").get("id");
+// 	info account_id;
+product_detail = invoice_detail.get("Product_Details");
+// 	info product_detail ;
+invoice_date = invoice_detail.get("Invoice_Date");
+// 	info invoice_date ;
+invoice_subject = invoice_detail.get("Subject");
+// 	info invoice_subject ;
+// 	percentage_total = invoice_detail.get("")
+}

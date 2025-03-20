@@ -1,0 +1,33 @@
+void automation.sales_margin_calculation()
+{
+	get_quotes_detail = zoho.crm.getRecordById("Quotes", 850357000000468399);
+// 	info get_quotes_detail;
+	product_details = get_quotes_detail.get("Product_Details");
+// 	info product_details;
+	sales_margin = 0.0;
+	
+	for each get_single_product in product_details
+    {
+		product_name = get_single_product.get("product").get("name");
+// 		info product_name;
+		id = get_single_product.get("product").get("id");
+// 		info id;
+		discount = ifNull(get_single_product.get("Discount"),"0.0").toDecimal();
+// 		info discount ;
+		quantity = ifNull(get_single_product.get("quantity"),"0.0").toDecimal();
+// 		info quantity ;
+		product_details_new = zoho.crm.getRecordById("products", 850357000000468399);
+		cost_price = ifNull(get_single_product.get("Unit_Price"),"0.0").toDecimal();
+// 		info cost_price ;
+		cost_price_quantity =(cost_price * quantity) - discount;
+		sales_margin = sales_margin + cost_price_quantity;
+// 		info sales_margin ;
+    }
+	mp = map();
+	mp.put("Sales_Margin", sales_margin);
+	update = zoho.crm.updateRecord("Quotes", 850357000000468399, mp);
+	info mp;
+	info update;
+// 	info sales_margin ;
+
+}

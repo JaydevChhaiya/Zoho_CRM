@@ -1,0 +1,28 @@
+void automation.send_data_to_deal()
+{
+	deal_id = zoho.crm.getRecordById("Deals", 850357000000468924);
+// 	info deal_id;
+	contact = deal_id.get("Contact_Name");
+// 	info contact;
+	bb = contact.get("id");
+// 	info bb;
+	contact_info = zoho.crm.getRecordById("Contacts", 850357000000468511);
+	mailing_state = contact_info.get("Mailing_State");
+// 	info mailing_state;
+	mailing_street = contact_info.get("Mailing_Street");
+	mailing_zip = contact_info.get("Mailing_Zip");
+	mailing_country = contact_info.get("Mailing_Country");
+	mailing_city = contact_info.get("Mailing_City");
+	
+	mp = map();
+	mp.put("Mailing_Street", mailing_street);
+	mp.put("Mailing_City", mailing_city);
+	mp.put("Mailing_State", mailing_state);
+	mp.put("Mailing_Zip", mailing_zip);
+	mp.put("Mailing_Country", mailing_country);
+	info mailing_country ;
+	
+	update = zoho.crm.updateRecord("Deals", 850357000000468924, mp);
+	info mp;
+// 	info update;
+}

@@ -1,0 +1,55 @@
+string button.create_quote_from_deal121(String dealID)
+{
+podDetails = zoho.crm.getRecordById("Deals",dealID);
+// info podDetails;
+mp = Map();
+if(ifNull(podDetails.get("Contact_Name"),"") != "")
+{
+	contact = ifNull(podDetails.get("Contact_Name").get("id"),"");
+	mp.put("Contact_Name",contact);
+}
+if(ifNull(podDetails.get("Account_Name"),"") != "")
+{
+	account = ifNull(podDetails.get("Account_Name").get("id"),"");
+	mp.put("Account_Name",account);
+}
+info mp;
+related_products = zoho.crm.getRelatedRecords("Products","Deals",dealID);
+info related_products;
+product_items = List();
+for each  products in related_products
+{
+	product_id = products.get("id");
+	info product_id;
+	product_name = products.get("Product_Name");
+	info product_name;
+	product_description = products.get("Description");
+	info product_description;
+	quantity = 1;
+	price = ifnull(products.get("Unit_Price"),"0.0").toDecimal();
+	list_price = price * quantity;
+	line_item = Map();
+	line_item.put("Description",product_description);
+	line_item.put("Quantity",quantity);
+	line_item.put("Net_Total",list_price);
+	line_item.put("Total",list_price);
+	line_item.put("List_Price",list_price);
+	product_items.add("line_item");
+	mp.put("Product_Details",product_items);
+	mp.put("Subject",ifnull(podDetails.get("Description"),""));
+	creat_response = zoho.crm.createRecord("Quotes",mp);
+	// 	info mp();
+	info creat_response;
+	newID = ifnull(creat_response.get("id"),"");
+	if(newID != "")
+	{
+		openUrl("https://crm.zoho.in/crm/org60036339856/tab/Quotes/custom-view/850357000000030539/list","new window");
+		return "New Quote created successfully";
+	}
+	else
+	{
+		return "Quote could not be created. Missing product details in deal";
+	}
+}
+return "Quote created successfully";
+}

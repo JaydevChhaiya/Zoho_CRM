@@ -1,0 +1,39 @@
+void automation.Accountname_on_Pincode(Int lead_id)
+{
+// Fetch the Lead record using Lead ID
+lead_record = zoho.crm.getRecordById("Leads",lead_id);
+if(lead_record.contains("Pin_code1"))
+{
+	pin_codes = lead_record.get("Pin_code1");
+	info "Selected Pin-codes: " + pin_codes;
+ 
+	accounts = list();
+ 
+	for each  pin_code in pin_codes
+	{
+		// Fetch the Pin-code record from the Pin-code Module
+		pin_code_records = zoho.crm.searchRecords("Pin_code","(Name:equals:" + pin_code + ")");
+		if(pin_code_records.size() > 0)
+		{
+			pin_code_record = pin_code_records.get(0);
+			account_info = pin_code_record.get("Pin_code_Owner");
+			if(account_info != null)
+			{
+				account_id = account_info.get("id");
+				// Get the Account ID
+				accounts.add(account_id);
+				info "Matched Account ID: " + account_id;
+			}
+		}
+	}
+	// Update the Account Name field in the Lead module
+	if(accounts.isEmpty() == false)
+	{
+		update_map = Map();
+		update_map.put("Account_Name",accounts.get(0));
+		// Assign first matched Account
+		update_response = zoho.crm.updateRecord("Leads",lead_id,update_map);
+		info "Lead Update Response: " + update_response;
+	}
+}
+}

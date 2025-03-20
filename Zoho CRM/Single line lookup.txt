@@ -1,0 +1,15 @@
+void automation.data_from_single_line_to_lookup1(String DID)
+{
+deals_info = zoho.crm.getRecordById("Deals",DID);
+// 	info deals_info;
+deal_name = deals_info.get("Deal_Name");
+// 	info deal_name;
+m = Map();
+m.put("Last_Name",deal_name);
+create_contact = zoho.crm.createRecord("Contacts",m);
+CID = create_contact.get("id");
+mp = Map();
+mp.put("Contact_Name",CID);
+update = zoho.crm.updateRecord("Deals",DID,{"trigger":{"workflow"}});
+info update;
+}

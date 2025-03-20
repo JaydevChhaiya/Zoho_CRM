@@ -1,0 +1,25 @@
+void automation.invoice()
+{
+all_record = zoho.crm.getRecordById("Invoices",850357000000368042);
+// 	info all_record;
+discount = all_record.get("Sales_Commission");
+// 	info discount;
+all = all_record.get("Product_Details");
+// 	info all ;
+list_p = {};
+for each  ss in all
+{
+	first_product = ss.get("list_price");
+	// 		info first_product ;
+	price = discount * first_product / 100;
+	// 		info price;
+	mp = Map();
+	mp.put("list_price",price);
+	mp.put("id",ss.get("id"));
+	// 		info mp ;
+	list_p.add(mp);
+}
+// 	info list_p ;
+update = zoho.crm.updateRecord("Invoices",850357000000368042,{"Product_Details":list_p});
+// 	info update ;
+}
