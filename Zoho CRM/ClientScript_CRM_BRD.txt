@@ -1,0 +1,242 @@
+1.Auto-Suggest Loan Products Based on Income Level
+Purpose: When an Applicant’s Monthly Income is entered, the system should suggest a suitable loan product based on predefined income brackets.
+
+
+let applicant = ZDK.Page.getField("Applicant_Name").getValue();
+let applicantid = applicant.id;
+
+if (applicant && applicant.id) {
+   let applicantRecord = ZDK.Apps.CRM.Leads.fetchById(applicant.id);
+        let monthlyIncome = applicantRecord.Monthly_Income;
+
+        if (monthlyIncome !== null && monthlyIncome !== undefined) {
+            let suggestedLoan = "";
+
+          
+            if (monthlyIncome > 10000) {
+                suggestedLoan = "Home";
+            } else if (monthlyIncome > 5000) {
+                suggestedLoan = "Auto";
+            } else {
+                suggestedLoan = "Health";
+            }
+
+            ZDK.Page.getField("Loan_Type").setValue(suggestedLoan);
+
+           
+            console.log("Monthly Income: " + monthlyIncome);
+            console.log("Suggested Loan: " + suggestedLoan);
+        } else {
+            console.log("Monthly Income is null or undefined");
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+2.Auto-Calculate Insurance Premium Based on Age & Coverage
+Purpose: When a customer selects a Coverage Amount, the system should automatically calculate the Monthly Premium based on their Age and Risk Factors.
+
+
+const coverageAmount = ZDK.Page.getField("Coverage_Amount").getValue();
+const policyholder = ZDK.Page.getField("Policyholder_Name").getValue();
+
+console.log("Coverage Amount:", coverageAmount);
+console.log("Policyholder:", policyholder);
+
+if (coverageAmount && policyholder && policyholder.id) {
+
+    console.log("Fetching policyholder details...");
+
+    // Using async/await syntax for cleaner code
+    async function fetchPolicyholderData() {
+        try {
+            let policyholderRecord = await ZDK.Apps.CRM.Contacts.fetchById(policyholder.id);
+            console.log("Fetched policyholder data:", policyholderRecord);
+
+            // Access the Date_of_Birth field directly (use the correct API name)
+            const dob = policyholderRecord.Date_of_Birth;
+
+            if (!dob) {
+                console.error("Date of Birth not found for the policyholder.");
+                return;
+            }
+
+            console.log("Policyholder's Date of Birth:", dob);
+
+            // Calculate Age
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+
+            console.log("Calculated Age:", age);
+
+            // Risk Factor - Static for now (1.0); can be dynamic if risk profile is added
+            const riskFactor = 1.0;
+            console.log("Risk Factor:", riskFactor);
+
+            // Age Factor logic
+            let ageFactor = 1.0;
+            if (age <= 25) ageFactor = 1.2;
+            else if (age <= 40) ageFactor = 1.0;
+            else if (age <= 60) ageFactor = 1.3;
+            else ageFactor = 1.5;
+
+            console.log("Age Factor:", ageFactor);
+
+            // Premium Calculation Formula: (Coverage * Risk * AgeFactor) / 1200
+            const premium = (coverageAmount * riskFactor * ageFactor) / 1200;
+
+            console.log("Calculated Premium:", premium.toFixed(2));
+
+            // Set the calculated Premium Amount
+            ZDK.Page.getField("Premium_Amount").setValue(premium.toFixed(2));
+
+        } catch (error) {
+            console.error("Error fetching policyholder data:", error);
+        }
+    }
+
+    fetchPolicyholderData();
+
+} else {
+    console.log("Coverage Amount or Policyholder not provided.");
+}
+
+
+
+
+
+
+3.Auto-Fill Policyholder Details from Existing Customer Records
+Purpose: When a Policyholder Name is selected, the system should auto-fill email, phone, and existing policies from the Customers Module.
+
+
+const policyholder = ZDK.Page.getField("Policyholder_Name").getValue();
+let count = 0;
+
+
+
+if (policyholder != null) {
+    var policyholder_dt = ZDK.Apps.CRM.Contacts.fetchById(policyholder.id);
+   
+
+    // Auto-fill Email and Phone
+    ZDK.Page.getField("Email").setValue(policyholder_dt.Email_Address);
+    ZDK.Page.getField("Phone").setValue(policyholder_dt.Contact_Number);
+   
+
+    var related_records = ZDK.Apps.CRM.Contacts.fetchRelatedRecords(policyholder.id, "Policy_Records11");
+   
+    if (related_records != null) {
+         related_records.forEach((rec) => {
+            count += 1;
+        })
+
+    }
+    if (count > 0) {
+            ZDK.Page.getField("Existing_Active_Policies").setValue(count);
+       
+    } else {
+        ZDK.Page.getField("Existing_Active_Policies").setValue(0);
+       
+    }
+    
+
+}
+
+
+4. Auto-Fill Buyer Details from Inquiry Module
+Purpose: When a sales agent selects a Buyer Name in the Transaction Module, the system should automatically populate the buyer’s email, phone, and budget details from the Inquiries Module.
+
+const inq_data = ZDK.Page.getField("Contact_Name").getValue();
+log(inq_data.id);
+
+if (inq_data != null)
+{
+    var inquiry_dt = ZDK.Apps.CRM.Contacts.fetchById(inq_data.id);
+    log(inquiry_dt);
+    
+   
+ 
+    if (inquiry_dt != null)
+    {
+        ZDK.Page.getField("Email").setValue(inquiry_dt.Email);
+        ZDK.Page.getField("Phone").setValue(inquiry_dt.Phone_Number);
+        ZDK.Page.getField("Buyer_Budget").setValue(inquiry_dt.Budget_Range);
+    }
+}
+ 
+
+5. Prevent Duplicate Property Listings
+Purpose: Before submitting a New Property Listing, the system should check if a similar property address already exists in the CRM.
+
+var prodata = ZDK.Apps.CRM.Property_Listings.fetch();
+var addressdata = ZDK.Page.getField("Address").getValue();
+var flag = 0;
+for (let response of prodata) {
+    if (addressdata === response._Address ) {
+        
+        flag = 1;
+    }
+    
+}
+if (flag == 1) { 
+    ZDK.Client.showMessage(" Please use another Address");
+    return false;
+}
+
+else
+
+{
+    return true;
+}
+
+
+
+6.Auto-Calculate Commission in Transaction Module
+Purpose: When a Transaction Amount is entered, the system should automatically calculate the Agent’s Commission based on the assigned commission percentage.
+
+
+var data = ZDK.Page.getField('Sale_Price').getValue();
+console.log(data);
+var comm = ZDK.Page.getField('Commission_Percentage').getValue();
+console.log(comm);
+var price = (data * comm) / 100;
+console.log(price);
+var tcomm = ZDK.Page.getField('Total_Commission').setValue(price);
+
+
+7.Auto-Fill Buyer Details from Inquiry Module
+Purpose: When a sales agent selects a Buyer Name in the Transaction Module, the system should automatically populate the buyer’s email, phone, and budget details from the Inquiries Module.
+
+
+const inq_data = ZDK.Page.getField("Contact_Name").getValue();
+log(inq_data.id);
+
+if (inq_data != null)
+{
+    var inquiry_dt = ZDK.Apps.CRM.Contacts.fetchById(inq_data.id);
+    log(inquiry_dt);
+    
+   
+ 
+    if (inquiry_dt != null)
+    {
+        ZDK.Page.getField("Email").setValue(inquiry_dt.Email);
+        ZDK.Page.getField("Phone").setValue(inquiry_dt.Phone_Number);
+        ZDK.Page.getField("Buyer_Budget").setValue(inquiry_dt.Budget_Range);
+    }
+}
+ 
+ 
