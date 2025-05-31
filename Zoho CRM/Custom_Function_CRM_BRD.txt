@@ -1,0 +1,605 @@
+Custom FUnction
+
+1.When a Transaction is finalized, the system shall generate a Sale Agreement PDF dynamically, attach it to the Legal Documents Module, and send an email notification to all relevant parties.
+ void automation.attach_file(String transactionId)
+{
+transaction = zoho.crm.getRecordById("Deals",transactionId);
+client = transaction.get("Contact_Name");
+tr_name = transaction.get("Deal_Name");
+info tr_name;
+id = transaction.get("id");
+info id;
+info client;
+closing_date = transaction.get("Closing_Date");
+info closing_date;
+address = transaction.get("Address");
+info address;
+buyer = transaction.get("Buyer_Name");
+info buyer;
+property = transaction.get("Property_Type_1");
+info property;
+price = transaction.get("Sale_Price");
+record_map = Map();
+record_map.put("Name",tr_name);
+record_map.put("Transaction_ID",id);
+legal_data = zoho.crm.createRecord("Legal_Documents",record_map);
+info legal_data;
+legal_id = legal_data.get("id");
+info legal_id;
+documentName = "Sale Agreement";
+mergeData = Map();
+mergeData.put("Buyer_Name",buyer);
+mergeData.put("Property_Type_1",property);
+mergeData.put("Sale_Price",price);
+mergeData.put("Address",address);
+mergeData.put("Contact_Name",client);
+mergeData.put("Closing_Date",closing_date);
+// info mergeData ;
+dataMap = Map();
+dataMap.put("data",mergeData);
+info dataMap;
+mergeValues = Map();
+mergeValues.put("merge_data",dataMap);
+// info mergeValues ;
+mergeDocumentId = "u89yj8462a26c12bc4186a1197dce36689867";
+mergedPDF = zoho.writer.mergeAndDownload(mergeDocumentId,"pdf",mergeValues,"pdf_generate");
+info mergeValues;
+info dataMap;
+info mergeData;
+mergedPDF.setFileName(documentName + ".pdf");
+saveAttachment = zoho.crm.attachFile("Legal_Documents",legal_id,mergedPDF);
+info saveAttachment;
+// related_dt = zoho.crm.getRelatedRecords("Attachments","Deals",transactionId);
+// info related_dt;
+// record_map.put("Uploaded_File", mergedPDF);
+// url = "https://writer.zoho.in/writer/open/u89yj8462a26c12bc4186a1197dce36689867";
+// file_object = invokeurl
+// [
+// 	url :url
+// 	type :GET
+// ];
+// // Attach it to a record (in this case, a Lead)
+// response = zoho.crm.attachFile("Legal_Documents",908459000000653579,file_object);
+// info response;
+}
+
+
+2.When a New Policy is purchased, the system shall auto-generate an E-Policy PDF with customer details, store it in the Policy Records Module, and send it to the policyholder via email.
+
+void automation.Auto_generate_an_E_Policy_PDF(String policyRecordId)
+{
+  mergeDocumentId = "u89yj31e00d1103754d6992bf32ce489b9201";
+
+ policy_data = zoho.crm.getRecordById("Policy_Records", policyRecordId);
+
+
+	 policyholder_name = policy_data.get("Policyholder_Name");
+	 policy_id = ifnull(policy_data.get("Policy_ID"), "");
+	 policyholder_email = ifnull(policy_data.get("Email"), "");
+	 phone = ifnull(policy_data.get("Phone"), "");
+	 age = ifnull(policy_data.get("Age"), "");
+	 policy_type = ifnull(policy_data.get("Policy_Type"), "");
+	 coverage_amount = ifnull(policy_data.get("Coverage_Amount"), 0);
+	 premium_amount = ifnull(policy_data.get("Premium_Amount"), 0);
+	 policy_start_date = ifnull(policy_data.get("Created_Time").getPrefix("T"), "");
+	 policy_expiry_date = ifnull(policy_data.get("Policy_Expiry_Date"), "");
+	 
+
+	 documentName = "E-Policy";
+	 
+	 mergeData = Map();
+	 mergeData.put("Policyholder_Name",policyholder_name);
+	 mergeData.put("Policy_ID",policy_id);
+	 mergeData.put("Email",policyholder_email);
+	 mergeData.put("Phone",phone);
+	 mergeData.put("Age",age);
+	 mergeData.put("Policy_Type",policy_type);
+	 mergeData.put("Coverage_Amount",coverage_amount);
+	 mergeData.put("Premium_Amount",premium_amount);
+	 mergeData.put("Created_Time",policy_start_date);
+	 mergeData.put("Policy_Expiry_Date",policy_expiry_date);
+	 
+// 	 info mergeData ;
+	 
+	 dataMap = Map();
+	 dataMap.put("data",mergeData);
+	 info dataMap;
+	 
+	 mergeValues = Map();
+	 mergeValues.put("merge_data",dataMap);
+	 
+	 // info mergeValues ;
+
+	 mergedPDF = zoho.writer.mergeAndDownload(mergeDocumentId,"pdf",mergeValues,"e_policy_pdf");
+	 info mergedPDF ;
+// 	 info mergeValues;
+// 	 info dataMap;
+	 info mergeData;
+	 
+	 mergedPDF.setFileName(documentName + ".pdf");
+	 
+	 saveAttachment = zoho.crm.attachFile("Policy_Records", policyRecordId, mergedPDF);
+	 info saveAttachment ;
+
+
+
+
+	
+
+}
+
+3.When a Loan is approved, the system shall auto-generate a Loan Repayment Schedule by creating EMI records for each month, assigning due dates, and updating the Repayment Schedules Module dynamically.
+
+
+void automation.Repayment_Schedules_Module_dynamically(int loanId)
+{
+   
+	 loanDetails = zoho.crm.getRecordById("Deals", loanId);
+// 	 info loanDetails ;
+	 borrower =loanDetails.get("Contact_Name").getJSON("id");
+	 
+	 info borrower ;
+	 
+	if (loanDetails.get("Loan_Status") == "Approved")
+    {
+	loan_cases_name = loanDetails.get("Deal_Name");
+	info loan_cases_name ;
+    borrower = loanDetails.get("Contact_Name").getJSON("id");
+    emiAmount = loanDetails.get("EMI_Amount");
+	interest_rate = loanDetails.get("Interest_Rate");
+	due_date = loanDetails.get("EMI_Start_Date").addMonth(1);
+	info due_date ;
+	info interest_rate ;
+	info emiAmount ;
+    tenure = loanDetails.get("Tenure_Months");
+	info tenure ;
+//     approvalDate = zoho.currentdate.toDate();
+// 	info approvalDate ;
+    loanCaseName = loanDetails.get("Loan_Case_ID");
+	}
+	datetimeStr = due_date.toString("yyyy-MM-dd'T'HH:mm:ss") + "+05:30";
+	
+	   createMap = map();
+    createMap.put("Name", loan_cases_name); 
+    createMap.put("Borrower_Name",borrower );
+    createMap.put("EMI_Amount", emiAmount);
+	 createMap.put("Tenure_Months", tenure);
+	  createMap.put("Interest_Rate", interest_rate);
+    createMap.put("Next_Due_Date", due_date.toStringdue_date.toString("yyyy-MM-dd'T'HH:mm:ss") + "+05:30");
+	
+    createMap.put("Payment_Status", "Pending");
+	
+	 createResponse = zoho.crm.createRecord("Repayment_Schedules",createMap);
+	 info createResponse ;
+	 info createMap ;
+}
+ 
+ 
+ 
+ 
+ 4.When a borrower has repaid 2+ loans on time, the system shall apply a 0.5% discount on their next loan’s interest rate, update the Loan Case record, and notify the borrower of their preferred interest rate offer.
+
+void automation.borrower_has_repaid_more_than_2_loans1(Int deal_id)
+{
+loan = zoho.crm.getRecordById("Deals",deal_id);
+info loan;
+borrowerMap = loan.get("Contact_Name");
+info borrowerMap;
+borrowerId = borrowerMap.get("id");
+borrowerId = borrowerMap.get("id");
+criteria = "((Borrower_Name:equals:" + borrowerId + ") and (Payment_Status:equals:Paid))";
+info criteria;
+repaymentRecords = zoho.crm.searchRecords("Repayment_Schedules",criteria);
+info repaymentRecords;
+if(repaymentRecords == null || repaymentRecords.size() < 2)
+{
+	info "Borrower has not paid 2+ EMIs on time. No discount.";
+	return;
+}
+currentRate = loan.get("Interest_Rate");
+if(currentRate == null)
+{
+	info "No Interest Rate set.";
+	return;
+}
+discountedRate = currentRate - 0.5;
+updateMap = Map();
+updateMap.put("Interest_Rate",discountedRate);
+updateResp = zoho.crm.updateRecord("Deals",deal_id,updateMap);
+info "Discounted Interest Rate applied: " + discountedRate;
+email = loan.get("Email_Address");
+info email;
+if(email != null)
+{
+	subject = "You're Eligible for a Loyalty Interest Discount!";
+	body = "Dear " + loan.get("Full_Name") + ",\n\n" + "Thank you for your excellent repayment history. " + "You’ve been rewarded with a 0.5% interest discount on your new loan.\n\n" + "Your new interest rate is now: " + discountedRate + "%.\n\n" + "Best regards,\nFinReal Capital Pvt. Ltd.";
+	sendmail
+	[
+		from :zoho.loginuserid
+		to :email
+		subject :subject
+		message :body
+	]
+}
+}
+
+
+
+5.When a Policy is up for renewal, the system shall check if the customer has filed 3+ claims in the past year and, if so, increase their next year’s premium by 10% to reflect their high-risk profile.
+
+void automation.Customer_has_filed_3_claims(Int re_id)
+{
+// Step 1: Get renewal details
+renewalDetails = zoho.crm.getRecordById("Renewal_Tracker",re_id);
+policyholderId = renewalDetails.get("Policyholder_Name").get("id");
+policyId = renewalDetails.get("Policy_ID").get("id");
+// Step 2: Define time threshold
+oneYearAgo = zoho.currentdate.toDate().addYear(-1);
+// Step 3: Get all Deals (Claims) related to the Policyholder
+Deals = zoho.crm.getRelatedRecords("Deals","Contacts",policyholderId);
+info Deals;
+claimCount = 0;
+for each  claim in Deals
+{
+	claimDate = claim.get("Claim_Submission_Date");
+	if(claimDate != null)
+	{
+		claimDateParsed = claimDate.toDate();
+		if(claimDateParsed >= oneYearAgo && claimDateParsed <= zoho.currentdate.toDate())
+		{
+			claimCount = claimCount + 1;
+			info claimCount;
+		}
+	}
+}
+// Step 4: If 3+ claims in past year, increase premium by 10%
+if(claimCount >= 3)
+{
+	policy = zoho.crm.getRecordById("Policy_Records",policyId);
+	originalPremium = policy.get("Premium_Amount");
+	if(originalPremium != null)
+	{
+		newPremium = originalPremium * 1.1;
+		updateMap = Map();
+		updateMap.put("Premium_Amount",newPremium);
+		updateMap.put("Discount_Applied",-10);
+		updateMap.put("Risk_Profile", "High");
+		// negative = increase
+		updateMap.put("Renewal_Notes","Premium increased by 10% due to 3+ claims in past year");
+		updateResp = zoho.crm.updateRecord("Renewal_Tracker",re_id,updateMap);
+		info updateResp;
+	}
+}
+else
+{
+	info "Fewer than 3 claims — no premium adjustment";
+}
+}
+
+
+
+
+
+
+
+6.When a Policyholder has not filed any claims in the past year, the system shall apply a 5% No-Claim Bonus (NCB) discount to their renewed policy premium and notify them of their eligibility.
+
+
+void automation.Policyholder_has_not_filed_any_claims()
+{
+
+    // Step 1: Get renewal details
+    renewalDetails = zoho.crm.getRecordById("Renewal_Tracker", 915967000000611981);
+	email_data = renewalDetails.get("Email_Address");
+    policyholderId = renewalDetails.get("Policyholder_Name").get("id");
+    policyId = renewalDetails.get("Policy_ID").get("id");
+
+    // Step 2: Define date range (past 1 year)
+    today = zoho.currentdate.toDate();
+    oneYearAgo = today.addYear(-1);
+
+    // Step 3: Get related claims (Deals) for the policyholder
+    Deals = zoho.crm.getRelatedRecords("Deals", "Contacts", policyholderId);
+    claimCount = 0;
+
+    for each claim in Deals
+    {
+        claimDate = claim.get("Claim_Submission_Date");
+        if (claimDate != null)
+        {
+            claimDateParsed = claimDate.toDate();
+            if (claimDateParsed >= oneYearAgo && claimDateParsed <= today)
+            {
+                claimCount = claimCount + 1;
+            }
+        }
+    }
+
+    // Step 4: If zero claims, apply 5% No-Claim Bonus
+    if (claimCount == 0)
+    {
+        policy = zoho.crm.getRecordById("Policy_Records", policyId);
+        originalPremium = policy.get("Premium_Amount");
+
+        if (originalPremium != null)
+        {
+            newPremium = originalPremium * 0.95;
+
+            updateMap = map();
+            updateMap.put("Premium_Amount", newPremium);
+            updateMap.put("Discount_Applied", 5); // 5% discount
+            updateMap.put("Renewal_Notes", "5% No-Claim Bonus applied for 0 claims in the past year");
+
+            updateResp = zoho.crm.updateRecord("Renewal_Tracker", 915967000000611981, updateMap);
+            info updateResp;
+			body = "Dear Customer,<br><br>" +
+"Great news! Because you haven’t filed any claims in the past year, you’re eligible for a <strong>5% No-Claim Bonus</strong> (NCB) on your renewed insurance policy.<br><br>" +
+"As a result, your premium for the upcoming policy term has been reduced to: <strong>₹" + newPremium.toString() + "</strong><br><br>" +
+"We appreciate your safe and responsible coverage usage. If you have any questions, feel free to reach out.<br><br>" +
+"Regards,<br>" +
+"FinReal Secure Pvt. Ltd.<br>" +
+"Customer Support Team";
+
+
+       sendmail
+       [
+       	from: zoho.loginuserid
+       	to: email_data
+       	subject: "You've Earned a 5% No-Claim Bonus on Your Renewed Policy!"
+       	message: body
+       
+       ]
+        }
+    }
+    else
+    {
+        info "Claims found in the past year — NCB not applicable.";
+    }
+
+
+}
+
+
+7.When a Buyer has canceled 3+ deals in the past year, the system shall automatically flag them as "High-Risk" in the Clients Module and prevent new inquiries from being 
+
+void automation.Buyer_has_canceled_3_deals(Int deal_id)
+{
+one_year_ago = zoho.currentdate.subYear(1);
+info "One year ago: " + one_year_ago;
+// Get single contact by ID
+client = zoho.crm.getRecordById("Deals",deal_id);
+client_id = client.get("Contact_Name").get("id");
+info client_id;
+client_email = client.get("Email");
+info "Client ID: " + client_id + " | Email: " + client_email;
+// Search deals with same contact and stage "Closed Lost"
+search_criteria = "(Contact_Name:equals:" + client_id + ") and (Stage:equals:Closed Lost)";
+info "Search Criteria: " + search_criteria;
+canceled_deals = zoho.crm.searchRecords("Deals",search_criteria);
+// Filter by date within the past year
+canceled_count = 0;
+for each  deal in canceled_deals
+{
+	closed_date = deal.get("Closing_Date");
+	info closed_date;
+	if(closed_date != null)
+	{
+		closed_date_parsed = closed_date.toDate();
+		if(closed_date_parsed >= one_year_ago && closed_date_parsed <= zoho.currentdate.toDate())
+		{
+			canceled_count = canceled_count + 1;
+		}
+	}
+}
+info "Client: " + client_email + " | Canceled Deals in Last Year: " + canceled_count;
+// Update Risk Status
+update_map = Map();
+if(canceled_count >= 3)
+{
+	update_map.put("Risk_Status","High");
+}
+else
+{
+	update_map.put("Risk_Status","Low");
+}
+updateResp = zoho.crm.updateRecord("Contacts",client_id,update_map);
+info updateResp;
+}
+
+
+
+
+8.Every Sunday at 2 AM, the system shall automatically archive old inquiries that have remained inactive for more than 90 days, update their status to "Archived", and send a summary email to the sales team regarding lost leads.
+
+void schedule.archive_old_inquiries(String lead_id)
+{
+inq_data = zoho.crm.getRecordById("Leads",lead_id);
+info inq_data;
+data_map = Map();
+status = ifnull(inq_data.get("Lead_Status"),"");
+data_map.put("Lead_Status","Archived");
+create_date = inq_data.get("Created_Time").getPrefix("T");
+info create_date;
+now_days = create_date.addDay(90);
+current_date = zoho.currentdate;
+ratings = inq_data.get("Rating");
+response = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v7/settings/user_groups/908459000000446184/associated_users"
+	type :GET
+	connection:"demo"
+];
+if(response != null)
+{
+	UserList = List();
+	for each  rec in response.get("associated_users")
+	{
+		UserList.add(rec.getjson("email"));
+	}
+}
+info UserList;
+// info inquiry_date;
+// info now_days;
+// info current_date;
+if(current_date > now_days && ratings != "Active")
+{
+	zoho.crm.updateRecord("Leads",lead_id,data_map);
+	// 	info "Yes";
+	sendmail
+	[
+		from :zoho.loginuserid
+		to :UserList
+		subject :"Regarding Archiving inactive inquiries "
+		message :"Hello i would like to inform you that few inquiries which were inactive for more than 90 Days are archived."
+	]
+}
+else
+{
+	info "No";
+}
+}
+
+
+
+9.Every day at 6 AM, the system shall check all overdue EMI payments that are past due by more than 5 days, apply a 2% late payment fee, update the total outstanding amount, and send a payment reminder email to the borrower.
+
+
+void schedule.Overdue_EMI_Payments(String re_id)
+{
+re_data = zoho.crm.getRecordById("Repayment_Schedules",re_id);
+info re_data;
+email_data = re_data.get("Email_Address");
+info email_data;
+days_overdue = re_data.get("Days_Overdue");
+emi_amount = re_data.get("EMI_Amount");
+if(days_overdue > 5)
+{
+	lateFee = emi_amount * 0.02;
+	totalOverdue = emi_amount + lateFee;
+	info totalOverdue;
+	mp = Map();
+	mp.put("Overdue_Amount",totalOverdue);
+	info mp;
+	update_data = zoho.crm.updateRecord("Repayment_Schedules",re_id,mp);
+	info update_data;
+	sendmail
+	[
+		from :zoho.loginuserid
+		to :email_data
+		subject :"Regarding Payment Reminder For Your Loan"
+		message :"Dear Customer,This is a reminder that your EMI payment is overdue by more than 5 days.."
+	]
+}
+}
+
+
+10.Every day at 8 AM, the system shall check for high-risk claims where the Claim Amount exceeds $10,000 and the policyholder has filed 3+ claims in the past year, flag them as "High-Risk", and assign them to a senior underwriter for manual review.
+
+
+void schedule.high_risk_claim(String claim_id)
+{
+one_year_ago = zoho.currentdate.subYear(1);
+// 	info "One year ago: " + one_year_ago;
+// Get single contact by ID
+deal_id = zoho.crm.getRecordById("Deals",claim_id);
+contact_name = deal_id.get("Contact_Name").get("id");
+info contact_name;
+amount = deal_id.get("Claim_Amount_Requested");
+// deal_id_email = deal_id.get("Email_Address");
+search_criteria = "Contact_Name:equals:" + contact_name;
+match_deals = zoho.crm.searchRecords("Deals",search_criteria);
+info match_deals;
+// Filter by date within the past year
+canceled_count = 0;
+for each  deal in match_deals
+{
+	closed_date = deal.get("Closing_Date");
+	info closed_date;
+	if(closed_date != null)
+	{
+		closed_date_parsed = closed_date.toDate();
+		// 		info closed_date_parsed;
+		if(closed_date_parsed >= one_year_ago && closed_date_parsed <= zoho.currentdate.toDate() && amount > 10000)
+		{
+			canceled_count = canceled_count + 1;
+		}
+	}
+}
+info canceled_count;
+// Update Risk Status
+update_map_high = Map();
+update_map_low = Map();
+if(canceled_count >= 3)
+{
+	update_map_high.put("Risk_Profile","High");
+	updateResp = zoho.crm.updateRecord("Contacts",contact_name,update_map_high);
+	info updateResp;
+}
+else
+{
+	update_map_low.put("Risk_Profile","Low");
+	updateResp = zoho.crm.updateRecord("Contacts",contact_name,update_map_low);
+	info updateResp;
+}
+}
+
+
+11.When a Buyer opts for mortgage financing, the system shall calculate the EMI using the formula:
+EMI = [P x R x (1+R)^N] / [(1+R)^N - 1]
+Where P = Loan Amount, R = Monthly Interest Rate, N = Loan Tenure
+The EMI amount shall be updated in the Transactions Module and an email shall be sent to the buyer with the EMI schedule.
+
+
+
+void automation.Calculate_the_EMI(Int deal_id)
+{
+deal_data = zoho.crm.getRecordById("Deals",deal_id);
+total_price = deal_data.get("Sale_Price");
+initial_payment = deal_data.get("Down_Payment");
+annual_interest_rate = ifnull(deal_data.get("Interest_Rate"),0);
+loan_duration_months = deal_data.get("Tenure");
+principal_amount = total_price - initial_payment;
+monthly_interest_rate = (annual_interest_rate / 12) / 100;
+compound_factor = power(1 + monthly_interest_rate,loan_duration_months);
+emi_numerator = principal_amount * monthly_interest_rate * compound_factor;
+emi_denominator = compound_factor - 1;
+emi_details = Map();
+if(emi_denominator != 0)
+{
+	calculated_emi = (emi_numerator / emi_denominator).round(2);
+	emi_details.put("EMI_Amount",calculated_emi);
+	update_data = zoho.crm.updateRecord("Deals",deal_id,emi_details);
+	info update_data;
+	info "EMI: ₹" + calculated_emi;
+}
+else
+{
+	info " Plase check interest rate and tenure.";
+}
+}
+
+
+
+12.When a Transaction is marked as "Closed-Won", the system shall update the Property Status to "Sold" in the Property Listings Module and prevent new inquiries from being submitted for that property.
+
+
+void schedule.Update_Property_Listings_to_Sold(String transactionid)
+{
+transactionData = zoho.crm.getRecordById("Deals",transactionid);
+// info transactionData ;
+trans_status = ifNull(transactionData.get("Stage"),"");
+if(trans_status == "Deal Closure & Handover")
+{
+	property_info = transactionData.get("Property_Listings");
+	info property_info;
+	propertyid = ifNull(property_info.getJSON("id"),null);
+	info propertyid;
+	if(propertyid != null)
+	{
+		updatedata = Map();
+		updatedata.put("Availability_Status","Sold");
+		updaterecord = zoho.crm.updateRecord("Property_Listings",propertyid,updatedata);
+		info updaterecord;
+	}
+}
+}
