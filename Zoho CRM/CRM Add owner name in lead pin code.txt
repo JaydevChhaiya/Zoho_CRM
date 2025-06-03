@@ -1,5 +1,6 @@
 void automation.Accountname_on_Pincode(Int lead_id)
 {
+//API:https://api.postalpincode.in/pincode/361001
 // Fetch the Lead record using Lead ID
 lead_record = zoho.crm.getRecordById("Leads",lead_id);
 if(lead_record.contains("Pin_code1"))
