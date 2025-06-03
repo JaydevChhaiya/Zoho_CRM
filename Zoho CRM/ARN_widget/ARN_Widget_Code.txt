@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Meetings</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f7f9fb;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: #fff;
+            max-width: 420px;
+            margin: 40px auto;
+            padding: 32px 28px 24px 28px;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.03);
+        }
+        h2 {
+            color: #22223b;
+            margin-bottom: 18px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .download-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: #2563eb;
+            font-weight: 500;
+            background: #e0e7ff;
+            padding: 7px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .download-link:hover {
+            background: #c7d2fe;
+            text-decoration: underline;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #3a3a3a;
+            font-size: 1rem;
+        }
+        input[type="file"] {
+            display: block;
+            margin-bottom: 18px;
+            font-size: 1rem;
+        }
+        button {
+            background: linear-gradient(90deg, #2563eb 0%, #1e40af 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 28px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+        }
+        button:hover {
+            background: linear-gradient(90deg, #1e40af 0%, #2563eb 100%);
+        }
+        .success, .error {
+            margin-top: 18px;
+            font-weight: 500;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 1rem;
+            display: none;
+        }
+        .success {
+            background: #e6fbe8;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+        .error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Import Meetings</h2>
+        <a href="Meeting_CSV_Template.csv" download class="download-link">Download CSV File</a>
+        <label for="fileInput">Select a file:</label>
+        <input type="file" id="fileInput">
+        <button id="submitBtn">Submit</button>
+        <p id="successMsg" class="success">Meetings Successfully Imported</p>
+        <p id="errorMsg" class="error">Error: Import Failed</p>
+    </div>
+    <script>
+        //  Format Date to ISO 8601 with Timezone Offset
+        function formatDate(inputDate) {
+    if (!inputDate) return null;
+
+    let date = new Date(inputDate);
+    if (isNaN(date.getTime())) {
+        console.error("Invalid date format:", inputDate);
+        return null;
+    }
+
+    // Convert to ISO 8601 format without milliseconds
+    return date.toISOString().split(".")[0] + "+05:30"; 
+}
+
+
+        // Process CSV Data & Send API Request
+        function processCSV(csvData) {
+            ZOHO.embeddedApp.init().then(() => {
+                console.log("Zoho SDK Ready - Processing CSV...");
+
+                const lines = csvData.split("\n").map(line => line.trim()).filter(line => line);
+                if (lines.length < 2) {
+                    showError("Error: CSV file is empty or formatted incorrectly.");
+                    return;
+                }
+
+                for (let i = 1; i < lines.length; i++) {
+                    const data = lines[i].split(",").map(d => d.trim());
+
+                    let eventTitle = data[0] && data[0].trim() ? data[0].trim() : "Untitled Meeting";
+                    let startDate = data[1];
+                    let endDate = data[2];
+                    let arn = data[3];
+                    let venue = data[4] || "";        
+                    let description = data[5] || "";  
+
+                    // Validation
+                    if (!arn) {
+                        showError(`Row ${i}: ARN missing, cannot import the record.`);
+                        continue;
+                    }
+                    if (!eventTitle) {
+                        showError(`Row ${i}: Event_Title is missing.`);
+                        continue;
+                    }
+                    if (!startDate || !formatDate(startDate)) {
+                        showError(`Row ${i}: Start_DateTime is missing or invalid.`);
+                        continue;
+                    }
+                    if (!endDate || !formatDate(endDate)) {
+                        showError(`Row ${i}: End_DateTime is missing or invalid.`);
+                        continue;
+                    }
+
+                    // Find Account by ARN and associate
+                    ZOHO.CRM.API.searchRecord({
+                        Entity: "Accounts",
+                        Type: "criteria",
+                        Query: `(ARN:equals:${arn})`
+                    }).then(accountResp => {
+                        if (accountResp.data && accountResp.data.length > 0 && accountResp.data[0].id) {
+                            let accountId = accountResp.data[0].id;
+
+                            let meetingData = {
+                                "Event_Title": eventTitle,
+                                "Start_DateTime": formatDate(startDate),
+                                "End_DateTime": formatDate(endDate),
+                                "What_Id": accountId, 
+                                "$se_module": "Accounts",
+                                "ARN": arn,
+                                "Venue": venue,              // Add Venue (location)
+                                "Description": description   // Add Description
+                            };
+
+                            // Log API request before sending
+                            console.log(`Row ${i} - Final Data Sent to API:`, JSON.stringify(meetingData, null, 2));
+
+                            ZOHO.CRM.API.insertRecord({ Entity: "Events", APIData: meetingData })
+                                .then(response => handleResponse(response, i))
+                                .catch(error => showError(`Error in Row ${i}: API Request Failed`, error));
+                        } else {
+                            showError(`Row ${i}: No Account found for ARN ${arn}.`);
+                        }
+                    }).catch(error => {
+                        showError(`Row ${i}: Error fetching Account for ARN ${arn}.`, error);
+                    });
+                }
+            }).catch(error => {
+                console.error("Zoho SDK Initialization Error:", error);
+                showError("Zoho SDK failed to initialize. Please try again.");
+            });
+        }
+
+        function handleResponse(response, row) {
+            console.log(`Row ${row} - API Response:`, response);
+
+            if (response.data && response.data[0].code === "SUCCESS") {
+                document.getElementById("successMsg").style.display = "block";
+            } else {
+                let errorMessage = `Error in Row ${row}: ${response.data[0].message}`;
+                console.error("API Response Error:", JSON.stringify(response, null, 2));
+                showError(errorMessage);
+            }
+        }
+
+        function showError(message, error = null) {
+            document.getElementById("errorMsg").innerText = message;
+            document.getElementById("errorMsg").style.display = "block";
+            if (error) console.error("Full API Error:", JSON.stringify(error, null, 2));
+        }
+
+        //  File Upload Event Listener
+        document.getElementById("submitBtn").addEventListener("click", function () {
+            const fileInput = document.getElementById("fileInput");
+            if (fileInput.files.length === 0) {
+                alert("Please select a CSV file before submitting.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                processCSV(event.target.result);
+            };
+            reader.readAsText(file);
+        });
+
+        // CSV template content
+const csvTemplate = `Event_Title,Start_DateTime,End_DateTime,ARN,Venue,Description
+jaydev,2025-06-12T14:00,2025-06-13T15:00,109A,Jamnagar,Product Demo
+`;
+
+// Download CSV template on link click
+document.querySelector('a[download]').addEventListener('click', function(e) {
+    e.preventDefault();
+    const blob = new Blob([csvTemplate], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "Meeting_CSV_Template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+    </script>
+
+</body>
+</html>
