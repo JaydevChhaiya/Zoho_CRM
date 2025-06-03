@@ -1,0 +1,338 @@
+ 
+<!DOCTYPE html>
+<html>
+ 
+<head>
+  <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+ 
+    #productList {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+ 
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+ 
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+ 
+    th {
+      background-color: #f4f4f4;
+    }
+ 
+    select, input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      background-color: #fff;
+    }
+ 
+    button {
+      padding: 10px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+ 
+    button:hover {
+      background-color: #0056b3;
+    }
+ 
+    #grandTotal {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: right;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+ 
+<body>
+  <div id="productList">
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Product</th>
+          <th>Price</th>
+          <th>Quantity</th>
+          <th>Total</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="productTableBody">
+       
+      </tbody>
+    </table>
+    <button id="addRowButton">Add Row</button>
+    <button id="saveToDealsButton">Submit</button>
+    <div id="grandTotal">Grand Total: 0.00</div>
+  </div>
+ 
+  <script>
+    let allProducts = []; 
+    let dealId = null; 
+ 
+    ZOHO.embeddedApp.on("PageLoad", function (data) {
+      
+      if (data && data.Entity && data.EntityId) {
+        dealId = data.EntityId;
+      } else {
+        alert("Deal ID not found. Please ensure the widget is loaded in the context of a Deal.");
+        return;
+      }
+ 
+      
+      ZOHO.CRM.API.getAllRecords({
+        Entity: "Products",
+        sort_order: "asc",
+        per_page: 50,
+        page: 1
+      }).then(function (response) {
+        const productDetails = response.data;
+ 
+        if (productDetails && productDetails.length > 0) {
+          allProducts = productDetails.map(product => ({
+            id: product.id,
+            name: product.Product_Name,
+            category: product.Product_Category || "Uncategorized",
+            price: product.Unit_Price || "0.00"
+          }));
+ 
+          addRow();
+        } else {
+          document.getElementById("productList").innerHTML = "<p>No products found in the Products module.</p>";
+        }
+      }).catch(function (error) {
+        console.error("Error fetching products:", error);
+        document.getElementById("productList").innerHTML = "<p>Error fetching products. Please try again later.</p>";
+      });
+    });
+ 
+    function addRow() {
+      const tableBody = document.getElementById("productTableBody");
+ 
+      const row = document.createElement("tr");
+ 
+     
+      const categoryCell = document.createElement("td");
+      const categoryDropdown = document.createElement("select");
+      categoryDropdown.innerHTML = `
+        <option value="">Select a Category</option>
+        ${[...new Set(allProducts.map(product => product.category))].map(category => `<option value="${category}">${category}</option>`).join("")}
+      `;
+      categoryCell.appendChild(categoryDropdown);
+      row.appendChild(categoryCell);
+ 
+     
+      const productCell = document.createElement("td");
+      const productDropdown = document.createElement("select");
+      productDropdown.classList.add("product-dropdown"); 
+      productDropdown.innerHTML = `<option value="">Select a Product</option>`;
+      productCell.appendChild(productDropdown);
+      row.appendChild(productCell);
+ 
+      const priceCell = document.createElement("td");
+      const priceInput = document.createElement("input");
+      priceInput.type = "text";
+      priceInput.placeholder = "Price";
+      priceInput.readOnly = true;
+      priceCell.appendChild(priceInput);
+      row.appendChild(priceCell);
+ 
+    
+      const quantityCell = document.createElement("td");
+      const quantityInput = document.createElement("input");
+      quantityInput.type = "number";
+      quantityInput.placeholder = "Quantity";
+      quantityInput.min = 1;
+      quantityCell.appendChild(quantityInput);
+      row.appendChild(quantityCell);
+ 
+      const totalCell = document.createElement("td");
+      const totalInput = document.createElement("input");
+      totalInput.type = "text";
+      totalInput.placeholder = "Total";
+      totalInput.readOnly = true;
+      totalCell.appendChild(totalInput);
+      row.appendChild(totalCell);
+ 
+      
+      const actionCell = document.createElement("td");
+      const removeButton = document.createElement("button");
+      removeButton.innerText = "Remove";
+      removeButton.onclick = function () {
+        tableBody.removeChild(row);
+        updateGrandTotal();
+      };
+      actionCell.appendChild(removeButton);
+      row.appendChild(actionCell);
+ 
+     
+      categoryDropdown.addEventListener("change", function () {
+        const selectedCategory = this.value;
+        if (selectedCategory) {
+          const filteredProducts = allProducts.filter(product => product.category === selectedCategory);
+          productDropdown.innerHTML = `
+            <option value="">Select a Product</option>
+            ${filteredProducts.map(product => `<option value="${product.id}" data-price="${product.price}">${product.name}</option>`).join("")}
+          `;
+        } else {
+          productDropdown.innerHTML = `<option value="">Select a Product</option>`;
+          priceInput.value = "";
+          totalInput.value = "";
+          updateGrandTotal();
+        }
+      });
+ 
+      productDropdown.addEventListener("change", function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const price = selectedOption.getAttribute("data-price") || "0.00";
+        priceInput.value = price;
+        calculateTotal();
+      });
+ 
+      quantityInput.addEventListener("input", calculateTotal);
+ 
+      function calculateTotal() {
+        const price = parseFloat(priceInput.value) || 0;
+        const quantity = parseInt(quantityInput.value) || 0;
+        totalInput.value = (price * quantity).toFixed(2);
+        updateGrandTotal();
+      }
+ 
+      tableBody.appendChild(row);
+    }
+ 
+    function updateGrandTotal() {
+      const totalInputs = document.querySelectorAll("#productTableBody input[placeholder='Total']");
+      let grandTotal = 0;
+      totalInputs.forEach(input => {
+        grandTotal += parseFloat(input.value) || 0;
+      });
+      document.getElementById("grandTotal").innerText = `Grand Total: $${grandTotal.toFixed(2)}`;
+    }
+ 
+    
+    function saveToDealsSubform() {
+      if (!dealId) {
+        alert("Deal ID not found. Cannot save data.");
+        return;
+      }
+ 
+      const rows = document.querySelectorAll("#productTableBody tr");
+      const newSubformData = [];
+      let invalidData = false; 
+      rows.forEach(row => {
+        const category = row.querySelector("select").value;
+        const productDropdown = row.querySelector(".product-dropdown");
+        const productId = productDropdown ? productDropdown.value : ""; 
+        const price = row.querySelector("input[placeholder='Price']").value;
+        const quantity = row.querySelector("input[placeholder='Quantity']").value;
+        const total = row.querySelector("input[placeholder='Total']").value;
+ 
+        console.log("Row Data:", { category, productId, price, quantity, total }); 
+ 
+      
+        if (!productId) {
+          console.warn("Invalid row data: Product is missing.", { category, productId, price, quantity, total });
+          invalidData = true; 
+        } else if (!quantity || parseFloat(quantity) <= 0 || parseFloat(price) <= 0) {
+          console.warn("Invalid row data: Quantity or Price is invalid.", { category, productId, price, quantity, total });
+          invalidData = true; 
+        } else {
+          newSubformData.push({
+            Product: productId || "", 
+            Category1: category || "", 
+            Unit_Price: price || "0.00",
+            Quantity: quantity || "0",               
+            Total: total || "0.00"                 
+          });
+        }
+      });
+ 
+      if (invalidData) {
+        alert("Invalid data found in one or more rows. Please ensure all rows have a selected product and valid quantity/price.");
+        return; 
+      }
+ 
+      console.log("New Subform Data to Add:", newSubformData);
+ 
+      
+      ZOHO.CRM.API.getRecord({
+        Entity: "Deals",
+        RecordID: dealId
+      }).then(function (response) {
+        if (response.data && response.data.length > 0) {
+          const existingSubformData = response.data[0].Product_Details || []; 
+          console.log("Existing Subform Data:", existingSubformData);
+ 
+          
+          const combinedSubformData = [...existingSubformData, ...newSubformData];
+          console.log("Combined Subform Data:", combinedSubformData);
+ 
+        
+          ZOHO.CRM.API.updateRecord({
+            Entity: "Deals",
+            APIData: {
+              id: dealId,
+              Product_Details: combinedSubformData 
+            }
+          }).then(function (updateResponse) {
+            console.log("API Response:", updateResponse);
+            if (updateResponse.data && updateResponse.data[0] && updateResponse.data[0].code === "SUCCESS") {
+              alert("Data saved to Deals subform successfully!");
+ 
+              // Close the widget and refresh the parent page
+              ZOHO.CRM.UI.Popup.closeReload().then(function (data) {
+                console.log("Widget closed and page reloaded:", data);
+              });
+            } else {
+              console.error("Error in API response:", updateResponse);
+              alert("Error saving data to Deals subform. Check console for details.");
+            }
+          }).catch(function (error) {
+            console.error("Error saving data to Deals subform:", error);
+            alert("Error saving data to Deals subform.");
+          });
+        } else {
+          console.error("Error fetching existing subform data:", response);
+          alert("Error fetching existing subform data. Check console for details.");
+        }
+      }).catch(function (error) {
+        console.error("Error fetching Deal record:", error);
+        alert("Error fetching Deal record. Check console for details.");
+      });
+    }
+ 
+    document.getElementById("saveToDealsButton").addEventListener("click", saveToDealsSubform);
+    document.getElementById("addRowButton").addEventListener("click", addRow);
+ 
+    ZOHO.embeddedApp.init();
+  </script>
+</body>
+ 
+</html>
