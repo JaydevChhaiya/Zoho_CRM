@@ -1,0 +1,31 @@
+map validation_rule.Estimated_Rental_Start_Date(string crmAPIRequest)
+{
+    // Get record data
+    entityMap = crmAPIRequest.toMap().get("record");
+    
+    // Get the Estimated Rental Start Date
+    rentalStartDate = entityMap.get("Estimated_Rental_Start_Date");
+
+    response = Map();
+    
+    if (rentalStartDate != null)
+    {
+        // Convert to date
+        startDate = rentalStartDate.toDate("yyyy-MM-dd");
+
+        // Get today’s date
+        today = zoho.currentdate;
+
+        // Compare dates
+        if (startDate < today)
+        {
+            response.put("status", "error");
+            response.put("message", "📅 Estimated Rental Start Date must be today or a future date.");
+            return response;
+        }
+    }
+
+    // If everything is fine
+    response.put("status", "success");
+    return response;
+}
