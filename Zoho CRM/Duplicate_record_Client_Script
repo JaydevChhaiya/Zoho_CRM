@@ -1,0 +1,14 @@
+var Emirates = ZDK.Page.getField("Emirates_ID1").getValue();
+
+if (Emirates) {
+    var searchCriteria = "(Emirates_ID1:equals:" + Emirates + ")";
+    var records = ZDK.Apps.CRM.Leads.searchByCriteria(searchCriteria);
+
+    if (records && records.length > 0) {
+        var foundRecord = records[0]; 
+        ZDK.Client.showAlert("Duplicate Emirates ID! Already exists for: " + foundRecord.Full_Name);
+
+        
+        return false;
+    }
+}
